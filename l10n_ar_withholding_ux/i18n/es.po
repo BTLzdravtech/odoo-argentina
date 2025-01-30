@@ -3,16 +3,17 @@
 # 	* l10n_ar_withholding_ux
 # 
 # Translators:
-# Juan José Scarafía <scarafia.juanjose@gmail.com>, 2024
 # Camila Vives, 2024
+# Katherine Zaoral <katherine.zaoral@gmail.com>, 2025
+# Juan José Scarafía <scarafia.juanjose@gmail.com>, 2025
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-21 21:06+0000\n"
+"POT-Creation-Date: 2025-01-23 19:15+0000\n"
 "PO-Revision-Date: 2024-01-19 13:12+0000\n"
-"Last-Translator: Camila Vives, 2024\n"
+"Last-Translator: Juan José Scarafía <scarafia.juanjose@gmail.com>, 2025\n"
 "Language-Team: Spanish (https://app.transifex.com/adhoc/teams/46451/es/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -99,7 +100,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:l10n_ar_withholding_ux.report_payment_receipt_document
 #: model_terms:ir.ui.view,arch_db:l10n_ar_withholding_ux.report_withholding_certificate_document
 msgid "<strong>VAT Cond: </strong>"
-msgstr ""
+msgstr "<strong>Cond. IVA: </strong>"
 
 #. module: l10n_ar_withholding_ux
 #: model_terms:ir.ui.view,arch_db:l10n_ar_withholding_ux.report_payment_receipt_document
@@ -149,7 +150,7 @@ msgstr "Ajuste / Adelanto (sin impuestos)"
 #. module: l10n_ar_withholding_ux
 #: model:ir.model.fields,field_description:l10n_ar_withholding_ux.field_account_tax__withholding_advances
 msgid "Advances are Withholdable?"
-msgstr "Los adelantos son retenibles?"
+msgstr "Los adelantos están sujetos a retención?"
 
 #. module: l10n_ar_withholding_ux
 #: model:ir.model.fields,field_description:l10n_ar_withholding_ux.field_account_tax_withholding_rule__fix_amount
@@ -165,7 +166,7 @@ msgstr "Importe a ser restado antes de aplicar la alícuota"
 #. module: l10n_ar_withholding_ux
 #: model:ir.model.fields,help:l10n_ar_withholding_ux.field_account_tax__withholding_non_taxable_minimum
 msgid "Amounts lower than this wont't have any withholding"
-msgstr "Importes más bajos que este no tendrán ninguna retención"
+msgstr "Importes menores que este no tendrán ninguna retención"
 
 #. module: l10n_ar_withholding_ux
 #: model:ir.model.fields,field_description:l10n_ar_withholding_ux.field_l10n_ar_payment_withholding__automatic
@@ -205,7 +206,7 @@ msgstr ""
 #. module: l10n_ar_withholding_ux
 #: model:ir.model.fields.selection,name:l10n_ar_withholding_ux.selection__account_tax__withholding_type__based_on_rule
 msgid "Based On Rule"
-msgstr "Basado En La Regla"
+msgstr "Basado En Regla"
 
 #. module: l10n_ar_withholding_ux
 #: model:ir.actions.report,name:l10n_ar_withholding_ux.action_report_withholding_certificate
@@ -385,7 +386,7 @@ msgstr "Importe No Imponible"
 #: code:addons/l10n_ar_withholding_ux/models/account_tax.py:0
 #, python-format
 msgid "Non-taxable Amount can not be greater than Non-taxable Minimum"
-msgstr "El importe no imponible no puede ser mayor al máximo no imponible"
+msgstr "El importe no imponible no puede ser mayor al minimo no imponible"
 
 #. module: l10n_ar_withholding_ux
 #: model:ir.model.fields,field_description:l10n_ar_withholding_ux.field_account_tax__withholding_non_taxable_minimum
@@ -457,7 +458,7 @@ msgstr ""
 #. module: l10n_ar_withholding_ux
 #: model:ir.model.fields,field_description:l10n_ar_withholding_ux.field_l10n_ar_payment_withholding__previous_withholding_amount
 msgid "Previous Withholding Amount"
-msgstr "Importe de retenición previo"
+msgstr "Importe de retención previo"
 
 #. module: l10n_ar_withholding_ux
 #: model_terms:ir.ui.view,arch_db:l10n_ar_withholding_ux.view_account_payment_form
@@ -529,7 +530,7 @@ msgstr "Impuesto"
 #. module: l10n_ar_withholding_ux
 #: model:ir.model.fields,field_description:l10n_ar_withholding_ux.field_account_tax_withholding_rule__tax_withholding_id
 msgid "Tax Withholding"
-msgstr "Retención de Impuestos"
+msgstr "Impuesto de Retención"
 
 #. module: l10n_ar_withholding_ux
 #: model:ir.model.fields,help:l10n_ar_withholding_ux.field_account_tax__withholding_type
