@@ -36,7 +36,7 @@ class AccountPayment(models.Model):
     def _compute_need_withholding_recompute(self):
         for rec in self:
             rec.need_withholding_recompute = False
-            if rec.partner_type == 'supplier' and rec.env['account.tax'].with_context(type=None).search([
+            if rec.partner_type == 'supplier' and not rec.is_internal_transfer and rec.env['account.tax'].with_context(type=None).search([
                 ('type_tax_use', '=', 'none'),
                 ('withholding_type', '!=', 'none'),
                 ('l10n_ar_withholding_payment_type', '=', rec.partner_type),
@@ -45,7 +45,7 @@ class AccountPayment(models.Model):
                 rec.need_withholding_recompute = True
 
     def compute_withholdings(self):
-        super()._compute_withholdings()
+        super().compute_withholdings()
         self.need_withholding_recompute = False
 
     # estaria bueno re-incorporarlo pero para hacerlo:
@@ -79,7 +79,7 @@ class AccountPayment(models.Model):
             else:
                 rec.company_regimenes_ganancias_ids = rec.env['afip.tabla_ganancias.alicuotasymontos']
 
-    @api.onchange('commercial_partner_id')
+    @api.onchange('partner_id', 'commercial_partner_id')
     def change_retencion_ganancias(self):
         # si es exento en ganancias o no tiene clasificacion pero es monotributista, del exterior o consumidor final, sugerimos regimen no_aplica
         if self.partner_id.commercial_partner_id.imp_ganancias_padron in ['EX', 'NC'] or (
