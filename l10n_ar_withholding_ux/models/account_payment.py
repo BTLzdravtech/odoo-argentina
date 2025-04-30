@@ -63,6 +63,7 @@ class AccountPayment(models.Model):
     #         rec.l10n_ar_withholding_line_ids = l10n_ar_withholding_line_ids
 
     def action_confirm(self):
+        # TODO vk: lock for arg
         checks_payments = self.filtered(lambda x: x.payment_method_code in ['in_third_party_checks', 'out_third_party_checks'])
         for rec in checks_payments:
             previous_to_pay = rec.to_pay_amount
@@ -146,6 +147,7 @@ class AccountPayment(models.Model):
         return res + ('l10n_ar_withholding_line_ids',)
 
     def _prepare_move_line_default_vals(self, write_off_line_vals=None, force_balance=None):
+        # TODO vk: lock for arg
         res = super()._prepare_move_line_default_vals(write_off_line_vals, force_balance=force_balance)
         res += self._prepare_witholding_write_off_vals()
         wth_amount = sum(self.l10n_ar_withholding_line_ids.mapped('amount'))
