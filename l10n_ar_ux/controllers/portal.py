@@ -15,6 +15,7 @@ class L10nArCustomerPortal(CustomerPortal):
     ]
 
     def details_form_validate(self, data):
+        # TODO vk: lock for arg
         """ When adding either document_type or document_number, this two should be setted """
         error, error_message = super().details_form_validate(data)
 
@@ -45,6 +46,7 @@ class L10nArCustomerPortal(CustomerPortal):
 
         return new_values
 
+    # TODO vk: check what they read
     @route()
     def account(self, redirect=None, **post):
         partner = request.env.user.partner_id
