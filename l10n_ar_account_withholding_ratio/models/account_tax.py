@@ -1,6 +1,6 @@
 from odoo import fields, models, api, _
 from odoo.exceptions import ValidationError
-
+from odoo.tools.float_utils import float_compare
 
 class AccountTax(models.Model):
     _inherit = 'account.tax'
@@ -21,11 +21,13 @@ class AccountTax(models.Model):
             vals['period_withholding_amount'] *= self.ratio / 100
         return vals
 
-    # TODO vk: lock for arg, float compare
-    def _compute_amount(
-            self, base_amount, price_unit, quantity, product, partner=None, fixed_multiplicator=1):
-        if self.amount_type == 'partner_tax' and self.ratio != 100:
-            date = self._context.get('invoice_date') or fields.Date.context_today(self)
-            partner = partner and partner.sudo()
-            return base_amount * self.sudo().get_partner_alicuota_percepcion(partner, date) * self.ratio / 100
-        return super()._compute_amount(base_amount, price_unit, quantity, product, partner=partner, fixed_multiplicator=fixed_multiplicator)
+    # DONETODO vk: lock for arg, float compare
+    def _compute_amount(self, base_amount, price_unit, quantity, product, partner=None, fixed_multiplicator=1):
+        if self.company_id.country_id == self.env.ref('base.ar'):
+            if self.withholding_type == 'partner_tax' and float_compare(self.ratio, 100.0, precision_digits=2) != 0:
+                date = self._context.get('invoice_date') or fields.Date.context_today(self)
+                partner = partner and partner.sudo()
+                return base_amount * self.sudo().get_partner_alicuota_percepcion(partner, date) * self.ratio / 100
+            return super()._compute_amount(base_amount, price_unit, quantity, product, partner=partner, fixed_multiplicator=fixed_multiplicator)
+        else:
+            return super()._compute_amount(base_amount, price_unit, quantity, product, partner=partner, fixed_multiplicator=fixed_multiplicator)

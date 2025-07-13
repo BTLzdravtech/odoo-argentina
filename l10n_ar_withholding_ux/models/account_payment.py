@@ -63,22 +63,25 @@ class AccountPayment(models.Model):
     #         rec.l10n_ar_withholding_line_ids = l10n_ar_withholding_line_ids
 
     def action_confirm(self):
-        # TODO vk: lock for arg
-        checks_payments = self.filtered(lambda x: x.payment_method_code in ['in_third_party_checks', 'out_third_party_checks'])
-        for rec in checks_payments:
-            previous_to_pay = rec.to_pay_amount
-            rec.compute_withholdings()
-            if not rec.currency_id.is_zero(previous_to_pay - rec.to_pay_amount):
-                raise UserError(
-                    'Está pagando con un cheque y las retenciones que se aplicarán cambiarán el importe a pagar de %s a %s.\n'
-                    'Por favor, compute las retenciones para que el importe a pagar se actualice y luego confirme el pago.' % (
-                        previous_to_pay, rec.to_pay_amount
-                    ))
-        self.compute_withholdings()
-        res = super().action_confirm()
-        # por ahora primero computamos retenciones y luego conifmamos porque si no en caso de cheques siempre da error
-        # TODO tal vez mejorar y advertir de que se va a computar el importe?
-        return res
+        # DONETODO vk: lock for arg
+        if self.company_id.country_id == self.env.ref('base.ar'):
+            checks_payments = self.filtered(lambda x: x.payment_method_code in ['in_third_party_checks', 'out_third_party_checks'])
+            for rec in checks_payments:
+                previous_to_pay = rec.to_pay_amount
+                rec.compute_withholdings()
+                if not rec.currency_id.is_zero(previous_to_pay - rec.to_pay_amount):
+                    raise UserError(
+                        'Está pagando con un cheque y las retenciones que se aplicarán cambiarán el importe a pagar de %s a %s.\n'
+                        'Por favor, compute las retenciones para que el importe a pagar se actualice y luego confirme el pago.' % (
+                            previous_to_pay, rec.to_pay_amount
+                        ))
+            self.compute_withholdings()
+            res = super().action_confirm()
+            # por ahora primero computamos retenciones y luego conifmamos porque si no en caso de cheques siempre da error
+            # TODO tal vez mejorar y advertir de que se va a computar el importe?
+            return res
+        else:
+            return super().action_confirm()
 
     def _prepare_witholding_write_off_vals(self):
         self.ensure_one()
@@ -147,33 +150,36 @@ class AccountPayment(models.Model):
         return res + ('l10n_ar_withholding_line_ids',)
 
     def _prepare_move_line_default_vals(self, write_off_line_vals=None, force_balance=None):
-        # TODO vk: lock for arg
-        res = super()._prepare_move_line_default_vals(write_off_line_vals, force_balance=force_balance)
-        res += self._prepare_witholding_write_off_vals()
-        wth_amount = sum(self.l10n_ar_withholding_line_ids.mapped('amount'))
-        conversion_rate = self.exchange_rate or 1.0
-        use_counterpart_exchange_rate = 'counterpart_exchange_rate' in self._fields and self.counterpart_exchange_rate
+        # DONETODO vk: lock for arg
+        if self.company_id.country_id == self.env.ref('base.ar'):
+            res = super()._prepare_move_line_default_vals(write_off_line_vals, force_balance=force_balance)
+            res += self._prepare_witholding_write_off_vals()
+            wth_amount = sum(self.l10n_ar_withholding_line_ids.mapped('amount'))
+            conversion_rate = self.exchange_rate or 1.0
+            use_counterpart_exchange_rate = 'counterpart_exchange_rate' in self._fields and self.counterpart_exchange_rate
 
-        # TODO: EVALUAR
-        # si cambio el valor de la cuenta de liquides quitando las retenciones el campo amount representa el monto que cancelo de la deuda
-        # si cambio la cuenta de contraparte (agregando retenciones) el campo amount representa el monto neto que abono al partner
-        # Ambos caminos funcionan pero no se cual es mejor a nivel usabilidad. depende como realizemos el calculo automatico de la ret
-        # liquidity_accounts = [x.id for x in self._get_valid_liquidity_accounts() if x]
-        valid_account_types = self._get_valid_payment_account_types()
+            # TODO: EVALUAR
+            # si cambio el valor de la cuenta de liquides quitando las retenciones el campo amount representa el monto que cancelo de la deuda
+            # si cambio la cuenta de contraparte (agregando retenciones) el campo amount representa el monto neto que abono al partner
+            # Ambos caminos funcionan pero no se cual es mejor a nivel usabilidad. depende como realizemos el calculo automatico de la ret
+            # liquidity_accounts = [x.id for x in self._get_valid_liquidity_accounts() if x]
+            valid_account_types = self._get_valid_payment_account_types()
 
-        for line in res:
-            account_id = self.env['account.account'].browse(line['account_id'])
-            # if line['account_id'] in liquidity_accounts:
-            if account_id.account_type in valid_account_types:
-                if self.payment_type == 'inbound':
-                    line['credit'] += wth_amount
-                    if not use_counterpart_exchange_rate:
-                        line['amount_currency'] -= wth_amount / conversion_rate
-                elif self.payment_type == 'outbound':
-                    line['debit'] += wth_amount
-                    if not use_counterpart_exchange_rate:
-                        line['amount_currency'] += wth_amount / conversion_rate
-        return res
+            for line in res:
+                account_id = self.env['account.account'].browse(line['account_id'])
+                # if line['account_id'] in liquidity_accounts:
+                if account_id.account_type in valid_account_types:
+                    if self.payment_type == 'inbound':
+                        line['credit'] += wth_amount
+                        if not use_counterpart_exchange_rate:
+                            line['amount_currency'] -= wth_amount / conversion_rate
+                    elif self.payment_type == 'outbound':
+                        line['debit'] += wth_amount
+                        if not use_counterpart_exchange_rate:
+                            line['amount_currency'] += wth_amount / conversion_rate
+            return res
+        else:
+            return super()._prepare_move_line_default_vals(write_off_line_vals, force_balance=force_balance)
 
     ###################################################
     # desde account_withholding_automatic payment.group
