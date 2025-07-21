@@ -6,7 +6,6 @@ class AccountMove(models.Model):
     _inherit = "account.move"
 
     def _get_tax_factor(self):
-        # DONETODO vk: lock for arg
         if self.company_id.country_id == self.env.ref('base.ar'):
             tax_factor = super()._get_tax_factor()
             doc_letter = self.l10n_latam_document_type_id.l10n_ar_letter
@@ -19,7 +18,6 @@ class AccountMove(models.Model):
             return super()._get_tax_factor()
 
     def _compute_tax_totals(self):
-        # DONETODO vk: lock for arg
         if self.company_id.country_id == self.env.ref('base.ar'):
             """ Mandamos en contexto el invoice_date para cauclo de impuesto con partner aliquot"""
             invoices = self.filtered(lambda x: x.is_invoice(include_receipts=True))

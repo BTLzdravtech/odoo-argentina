@@ -63,7 +63,6 @@ class AccountPayment(models.Model):
     #         rec.l10n_ar_withholding_line_ids = l10n_ar_withholding_line_ids
 
     def action_confirm(self):
-        # DONETODO vk: lock for arg
         if self.company_id.country_id == self.env.ref('base.ar'):
             checks_payments = self.filtered(lambda x: x.payment_method_code in ['in_third_party_checks', 'out_third_party_checks'])
             for rec in checks_payments:
@@ -150,7 +149,6 @@ class AccountPayment(models.Model):
         return res + ('l10n_ar_withholding_line_ids',)
 
     def _prepare_move_line_default_vals(self, write_off_line_vals=None, force_balance=None):
-        # DONETODO vk: lock for arg
         if self.company_id.country_id == self.env.ref('base.ar'):
             res = super()._prepare_move_line_default_vals(write_off_line_vals, force_balance=force_balance)
             res += self._prepare_witholding_write_off_vals()

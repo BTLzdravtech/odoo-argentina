@@ -21,7 +21,6 @@ class AccountTax(models.Model):
             vals['period_withholding_amount'] *= self.ratio / 100
         return vals
 
-    # DONETODO vk: lock for arg, float compare
     def _compute_amount(self, base_amount, price_unit, quantity, product, partner=None, fixed_multiplicator=1):
         if self.company_id.country_id == self.env.ref('base.ar'):
             if self.withholding_type == 'partner_tax' and float_compare(self.ratio, 100.0, precision_digits=2) != 0:

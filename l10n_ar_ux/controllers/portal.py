@@ -15,7 +15,6 @@ class L10nArCustomerPortal(CustomerPortal):
     ]
 
     def details_form_validate(self, data):
-        # DONETODO vk: lock for arg
         if request.env.company.country_code == 'AR':
             """ When adding either document_type or document_number, this two should be setted """
             error, error_message = super().details_form_validate(data)
@@ -49,7 +48,6 @@ class L10nArCustomerPortal(CustomerPortal):
 
         return new_values
 
-    # DONETODO vk: check what they read
     @route()
     def account(self, redirect=None, **post):
         if request.env.company.country_code == 'AR':
