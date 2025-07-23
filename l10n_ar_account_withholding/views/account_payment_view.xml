@@ -23,7 +23,6 @@
                 <field name="need_withholding_recompute" invisible="1"/>
             </form>
             <xpath expr="//header/button[@name='action_post']" position="attributes">
-                <!--                # TODO vk: nechybi tady vic veci ?-->
                 <attribute name="invisible" add=" or (partner_type == 'supplier' and need_withholding_recompute)" separator=" "/>
 
             </xpath>

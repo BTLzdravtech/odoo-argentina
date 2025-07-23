@@ -64,7 +64,7 @@
         </div>
     </template>
 
-    <!--                # TODO vk: replace-->
+    <!-- # TODO os: lock only for arg-->
     <template id="portal_my_details_fields" name="portal_my_details_fields" inherit_id="portal.portal_my_details_fields">
         <xpath expr="//label[@for='company_name']/.." position="replace"/>
         <xpath expr="//label[@for='vat']/.." position="attributes">

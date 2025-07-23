@@ -6,7 +6,6 @@
         <field name="model">account.tax</field>
         <field name="inherit_id" ref="account.view_tax_form"/>
         <field name="arch" type="xml">
-            <!--                # TODO vk: udelat addem-->
             <group name="advanced_booleans" position="attributes">
                 <attribute name="invisible">type_tax_use == 'none' and country_code == 'AR'</attribute>
             </group>

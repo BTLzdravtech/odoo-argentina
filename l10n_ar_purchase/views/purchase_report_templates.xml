@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-<!--                # TODO vk: prepisujou t-call..-->
+    <!-- # TODO os: lock only for arg-->
     <template id="report_purchasequotation" inherit_id="purchase.report_purchasequotation">
         <t t-call="purchase.report_purchasequotation_document" position="attributes">
             <attribute name="t-call">#{ o._get_name_purchase_report('purchase.report_purchasequotation_document') }</attribute>
