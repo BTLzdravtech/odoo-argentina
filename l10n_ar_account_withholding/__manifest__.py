@@ -52,5 +52,5 @@
         'python': ['pyafipws'],
     },
     'installable': True,
-    'auto_install': ['l10n_ar'],
+    # 'auto_install': ['l10n_ar'],
 }
