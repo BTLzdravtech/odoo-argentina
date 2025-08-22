@@ -53,13 +53,10 @@ class AccountTax(models.Model):
     )
     withholding_type = fields.Selection([
         ('none', 'None'),
-        # ('percentage', 'Percentage'),
         ('based_on_rule', 'Based On Rule'),
-        # ('fixed', 'Fixed Amount'),
         ('code', 'Python Code'),
-        # ('balance', 'Balance')
     ],
-        'Type',
+        string='Type',
         default='none',
         help="The computation method for the tax amount."
     )
