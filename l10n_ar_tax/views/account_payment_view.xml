@@ -16,7 +16,7 @@
     <record id="view_account_payment_form" model="ir.ui.view">
         <field name="name">account.payment.form.inherited</field>
         <field name="model">account.payment</field>
-        <field name="priority" eval="30"/>
+<!--        <field name="priority" eval="30"/>-->
         <field name="inherit_id" ref="account_payment_pro.view_account_payment_form" />
         <field name="arch" type="xml">
 
