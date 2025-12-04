@@ -16,16 +16,18 @@
     <record id="view_account_payment_form" model="ir.ui.view">
         <field name="name">account.payment.form.inherited</field>
         <field name="model">account.payment</field>
-        <field name="priority" eval="30"/>
-        <field name="inherit_id" ref="account.view_account_payment_form" />
+<!--        <field name="priority" eval="30"/>-->
+        <field name="inherit_id" ref="account_payment_pro.view_account_payment_form" />
         <field name="arch" type="xml">
 
-            <label for="payment_total" position="before">
+
+            <xpath expr="//label[@for='payment_total']" position="before">
                 <field name="withholdings_amount" string="Withholdings" invisible="is_internal_transfer or not use_payment_pro or country_code != 'AR'"/>
-            </label>
-            <div name="to_pay_amount">
+            </xpath>
+
+            <xpath expr="//div[@name='to_pay_amount']" position="inside">
                 <button name="compute_to_pay_amount_for_check" icon="fa-refresh" title="A partir del importe del pago (campo Importe) + ajuste, se calculan las retenciones y el importe a pagar. Útil por ejemplo para pagos con cheques donde el importe Importe no lo podemos cambiar" type="object" invisible="is_internal_transfer or partner_type != 'supplier' or state not in ['draft'] or payment_method_code not in ['in_third_party_checks', 'out_third_party_checks']" class="oe_inline oe_link"/>
-            </div>
+            </xpath>
 
             <page name="withholdings_page" position="attributes">
                 <attribute name="invisible">is_internal_transfer or country_code != 'AR' or use_payment_pro</attribute>
