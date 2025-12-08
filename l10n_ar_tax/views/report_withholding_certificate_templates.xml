@@ -118,7 +118,7 @@
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="o">
                 <t t-set="lang" t-value="o.payment_id.partner_id.lang"/>
-                <t t-call="l10n_ar_tax.report_withholding_certificate_document" t-lang="lang"/>
+<!--                <t t-call="l10n_ar_tax.report_withholding_certificate_document" t-lang="lang"/>-->
             </t>
         </t>
     </template>
