@@ -101,6 +101,7 @@ class AccountPayment(models.Model):
 
     @api.onchange("partner_id")
     def _onchange_partner_id(self):
+        # TODO: Odoo BTL - lock for AR company
         for rec in self:
             if rec.partner_id != rec._origin.partner_id:
                 rec._onchange_withholdings()
@@ -116,6 +117,7 @@ class AccountPayment(models.Model):
     #         # rec.unreconciled_amount = rec.to_pay_amount - rec.selected_debt
 
     def action_confirm(self):
+        # TODO: Odoo BTL - lock for AR company
         checks_payments = self.filtered(
             lambda x: x.payment_method_code in ["in_third_party_checks", "out_third_party_checks"]
         )
