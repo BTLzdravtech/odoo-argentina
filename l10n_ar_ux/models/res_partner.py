@@ -65,6 +65,7 @@ class ResPartner(models.Model):
     def try_write_commercial(self, data):
         """User for website. capture the validation errors and return them.
         return (error, error_message) = (dict[fields], list(str()))"""
+        # TODO: Odoo BTL - needs to be locked on AR company
         error = dict()
         error_message = []
         vat = data.get("vat")
