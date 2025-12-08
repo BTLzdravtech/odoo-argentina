@@ -99,6 +99,13 @@ class AccountPayment(models.Model):
             rec.amount = amount if amount > 0 else 0
             # rec.unreconciled_amount = rec.to_pay_amount - rec.selected_debt
 
+    @api.onchange("partner_id")
+    def _onchange_partner_id(self):
+        # TODO: Odoo BTL - lock for AR company
+        for rec in self:
+            if rec.partner_id != rec._origin.partner_id:
+                rec._onchange_withholdings()
+
     # # ver mensaje en commit
     # @api.onchange('to_pay_amount', 'withholdable_advanced_amount', 'partner_id')
     # def _onchange_to_pay_amount(self):
@@ -110,6 +117,7 @@ class AccountPayment(models.Model):
     #         # rec.unreconciled_amount = rec.to_pay_amount - rec.selected_debt
 
     def action_confirm(self):
+        # TODO: Odoo BTL - lock for AR company
         checks_payments = self.filtered(
             lambda x: x.payment_method_code in ["in_third_party_checks", "out_third_party_checks"]
         )
@@ -219,6 +227,7 @@ class AccountPayment(models.Model):
                 raise UserError(_('Withholdings must be done in "%s" currency') % rec.company_id.currency_id.name)
 
     def _prepare_move_line_default_vals(self, write_off_line_vals=None, force_balance=None):
+        # TODO: Odoo BTL - lock this for AR company
         res = super()._prepare_move_line_default_vals(write_off_line_vals, force_balance=force_balance)
         res += self._prepare_witholding_write_off_vals()
         wth_amount = sum(self.l10n_ar_withholding_line_ids.mapped("amount"))
@@ -313,6 +322,12 @@ class AccountPayment(models.Model):
                 )
                 withholdings += [Command.create({"tax_id": x.id}) for x in taxes]
             rec.l10n_ar_withholding_line_ids = withholdings
+            # Si hay retenciones que no son de ganancias y el importe a retener es 0 las quitamos
+            # Ejemplo: retenciones en pagos de notas de crédito (el monto base es negativo)
+            to_remove = rec.l10n_ar_withholding_line_ids.filtered(
+                lambda wth: wth.amount == 0 and wth.tax_id.l10n_ar_tax_type != "earnings_scale"
+            )
+            rec.l10n_ar_withholding_line_ids -= to_remove
 
     def compute_to_pay_amount_for_check(self):
         checks_payments = self.filtered(

@@ -12,6 +12,7 @@ class MailComposeMessage(models.TransientModel):
         withholding vouchers when sending payment reports by email."""
         super()._compute_attachment_ids()
         for composer in self:
+            # TODO: Odoo BTL - lock this for AR company
             res_ids = composer._evaluate_res_ids() or [0]
             if composer.model == "account.payment" and composer.template_id and len(res_ids) == 1:
                 payment = self.env[composer.model].browse(res_ids)

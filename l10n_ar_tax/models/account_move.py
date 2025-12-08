@@ -31,6 +31,7 @@ class AccountMove(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
+        # TODO: Odoo BTL - lock for AR company
         if "invoice_date" in vals:
             self._l10n_ar_recompute_fiscal_position_taxes()
         return res
