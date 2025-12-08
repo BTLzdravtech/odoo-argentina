@@ -225,6 +225,7 @@ class AccountPayment(models.Model):
                 raise UserError(_('Withholdings must be done in "%s" currency') % rec.company_id.currency_id.name)
 
     def _prepare_move_line_default_vals(self, write_off_line_vals=None, force_balance=None):
+        # TODO: Odoo BTL - lock this for AR company
         res = super()._prepare_move_line_default_vals(write_off_line_vals, force_balance=force_balance)
         res += self._prepare_witholding_write_off_vals()
         wth_amount = sum(self.l10n_ar_withholding_line_ids.mapped("amount"))
