@@ -10,6 +10,7 @@ class ResCountryState(models.Model):
 
     jurisdiction_code = fields.Char(compute="_compute_jurisdiction_code")
 
+    # TODO: Odoo BTL - please add parameters to the depends()
     @api.depends()
     def _compute_jurisdiction_code(self):
         for rec in self:
