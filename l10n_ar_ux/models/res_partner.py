@@ -66,32 +66,33 @@ class ResPartner(models.Model):
     def try_write_commercial(self, data):
         """User for website. capture the validation errors and return them.
         return (error, error_message) = (dict[fields], list(str()))"""
-        error = dict()
-        error_message = []
-        vat = data.get("vat")
-        l10n_latam_identification_type_id = data.get("l10n_latam_identification_type_id")
-        l10n_ar_afip_responsibility_type_id = data.get("l10n_ar_afip_responsibility_type_id", False)
+        if self.env.company.country_code == 'AR':
+            error = dict()
+            error_message = []
+            vat = data.get("vat")
+            l10n_latam_identification_type_id = data.get("l10n_latam_identification_type_id")
+            l10n_ar_afip_responsibility_type_id = data.get("l10n_ar_afip_responsibility_type_id", False)
 
-        if vat and l10n_latam_identification_type_id:
-            commercial_partner = request.env.user.partner_id.commercial_partner_id
-            try:
-                values = {
-                    "vat": vat,
-                    "l10n_latam_identification_type_id": int(l10n_latam_identification_type_id),
-                    "l10n_ar_afip_responsibility_type_id": int(l10n_ar_afip_responsibility_type_id)
-                    if l10n_ar_afip_responsibility_type_id
-                    else False,
-                }
-                commercial_fields = ["vat", "l10n_latam_identification_type_id", "l10n_ar_afip_responsibility_type_id"]
-                values = commercial_partner.remove_readonly_required_fields(commercial_fields, values)
-                with self.env.cr.savepoint():
-                    commercial_partner.write(values)
-            except Exception as exception_error:
-                _logger.error(exception_error)
-                error["vat"] = "error"
-                error["l10n_latam_identification_type_id"] = "error"
-                error_message.append(_(exception_error))
-        return error, error_message
+            if vat and l10n_latam_identification_type_id:
+                commercial_partner = request.env.user.partner_id.commercial_partner_id
+                try:
+                    values = {
+                        "vat": vat,
+                        "l10n_latam_identification_type_id": int(l10n_latam_identification_type_id),
+                        "l10n_ar_afip_responsibility_type_id": int(l10n_ar_afip_responsibility_type_id)
+                        if l10n_ar_afip_responsibility_type_id
+                        else False,
+                    }
+                    commercial_fields = ["vat", "l10n_latam_identification_type_id", "l10n_ar_afip_responsibility_type_id"]
+                    values = commercial_partner.remove_readonly_required_fields(commercial_fields, values)
+                    with self.env.cr.savepoint():
+                        commercial_partner.write(values)
+                except Exception as exception_error:
+                    _logger.error(exception_error)
+                    error["vat"] = "error"
+                    error["l10n_latam_identification_type_id"] = "error"
+                    error_message.append(_(exception_error))
+            return error, error_message
 
     def remove_readonly_required_fields(self, required_fields, values):
         """In some cases we have information showed to the user in the for that is required but that is already set

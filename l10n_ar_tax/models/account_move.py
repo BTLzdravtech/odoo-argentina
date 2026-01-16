@@ -31,8 +31,9 @@ class AccountMove(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
-        if "invoice_date" in vals:
-            self._l10n_ar_recompute_fiscal_position_taxes()
+        if self.env.company.country_code == 'AR':
+            if "invoice_date" in vals:
+                self._l10n_ar_recompute_fiscal_position_taxes()
         return res
 
     @api.onchange("invoice_date")
