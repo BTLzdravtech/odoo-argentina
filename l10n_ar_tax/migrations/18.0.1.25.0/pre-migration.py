@@ -21,3 +21,10 @@ def migrate(env, version):
         ("account_payment", "withholdable_advanced_amount", "float"),
     ])
     _logger.info("END add withholdable_advanced_amount to account_payment")
+
+
+    _logger.info("START add l10n_ar_withholding_line_ids to account_payment")
+    openupgrade.add_columns(env, [
+        ("account_payment", "l10n_ar_withholding_line_ids", "integer"),
+    ])
+    _logger.info("END add l10n_ar_withholding_line_ids to account_payment")
