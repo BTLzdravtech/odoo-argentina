@@ -152,7 +152,8 @@ class AccountPayment(models.Model):
 
             __, account_id, tax_repartition_line_id, __ = line._tax_compute_all_helper()
             balance = self.company_id.currency_id.round(sign * line.amount)
-            amount_currency = self.currency_id.round(balance / conversion_rate)
+            if self.currency_id:
+                amount_currency = self.currency_id.round(balance / conversion_rate)
             res.append(
                 {
                     **self._get_withholding_move_line_default_values(),
