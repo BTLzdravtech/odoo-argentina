@@ -144,7 +144,8 @@ class AccountPayment(models.Model):
         sign = 1
         if self.payment_type == "outbound":
             sign = -1
-
+        if not self.currency_id:
+            self._compute_currency_id()
         conversion_rate = self.exchange_rate or 1.0
         for line in self.l10n_ar_withholding_line_ids:
             # nuestro approach esta quedando distinto al del wizard. En nuestras lineas tenemos los importes en moneda
@@ -152,8 +153,7 @@ class AccountPayment(models.Model):
 
             __, account_id, tax_repartition_line_id, __ = line._tax_compute_all_helper()
             balance = self.company_id.currency_id.round(sign * line.amount)
-            if self.currency_id:
-                amount_currency = self.currency_id.round(balance / conversion_rate)
+            amount_currency = self.currency_id.round(balance / conversion_rate)
             res.append(
                 {
                     **self._get_withholding_move_line_default_values(),
