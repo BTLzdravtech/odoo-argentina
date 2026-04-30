@@ -35,8 +35,9 @@ class AccountMove(models.Model):
         # En Odoo 18+, cuando el guardado viene de un formulario (UI), los 'tax_ids' de las líneas
         # suelen estar presentes en los 'vals' (dentro de 'invoice_line_ids').
         # Si el usuario editó las líneas, no queremos re-ejecutar nuestra lógica de refresco automático.
-        if "invoice_date" in vals and "invoice_line_ids" not in vals:
-            self._l10n_ar_recompute_fiscal_position_taxes()
+        if self.env.company.country_code == 'AR':
+            if "invoice_date" in vals and "invoice_line_ids" not in vals:
+                self._l10n_ar_recompute_fiscal_position_taxes()
         return res
 
     @api.onchange("invoice_date", "commercial_partner_id")

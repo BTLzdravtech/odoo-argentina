@@ -12,48 +12,49 @@ class MailComposeMessage(models.TransientModel):
         withholding vouchers when sending payment reports by email.
         Only works for SINGLE payment sending (preview mode)."""
         super()._compute_attachment_ids()
-        for composer in self:
-            res_ids = composer._evaluate_res_ids() or [0]
-            if (
-                composer.model != "account.payment"
-                or not composer.template_id
-                or len(res_ids) != 1  # Solo para un pago
-            ):
-                continue
+        if self.env.company.country_code == 'AR':
+            for composer in self:
+                res_ids = composer._evaluate_res_ids() or [0]
+                if (
+                    composer.model != "account.payment"
+                    or not composer.template_id
+                    or len(res_ids) != 1  # Solo para un pago
+                ):
+                    continue
 
-            report = self.env.ref(
-                "l10n_ar_tax.action_report_withholding_certificate",
-                raise_if_not_found=False,
-            )
-            if not report:
-                continue
-
-            payment = self.env["account.payment"].browse(res_ids)
-            if payment.partner_type != "supplier":
-                continue
-
-            attachments = []
-            for withholding in payment.l10n_ar_withholding_line_ids.filtered("amount"):
-                # Importante: si se modifica la manera de acceder al report_name acá, hay que modificarlo
-                # también en el método _prepare_mail_values
-                report_name = safe_eval.safe_eval(report.print_report_name, {"object": withholding})
-                report_content, _ = self.env["ir.actions.report"]._render(report.report_name, withholding.ids)
-                report_content_encoded = base64.b64encode(report_content)
-
-                # Crear adjunto temporal para previsualización
-                attachment = self.env["ir.attachment"].create(
-                    {
-                        "name": report_name,
-                        "datas": report_content_encoded,
-                        "res_model": "mail.compose.message",
-                        "res_id": composer.id,
-                        "type": "binary",
-                    }
+                report = self.env.ref(
+                    "l10n_ar_tax.action_report_withholding_certificate",
+                    raise_if_not_found=False,
                 )
-                attachments.append(attachment.id)
+                if not report:
+                    continue
 
-            if attachments:
-                composer.attachment_ids = [(6, 0, composer.attachment_ids.ids + attachments)]
+                payment = self.env["account.payment"].browse(res_ids)
+                if payment.partner_type != "supplier":
+                    continue
+
+                attachments = []
+                for withholding in payment.l10n_ar_withholding_line_ids.filtered("amount"):
+                    # Importante: si se modifica la manera de acceder al report_name acá, hay que modificarlo
+                    # también en el método _prepare_mail_values
+                    report_name = safe_eval.safe_eval(report.print_report_name, {"object": withholding})
+                    report_content, _ = self.env["ir.actions.report"]._render(report.report_name, withholding.ids)
+                    report_content_encoded = base64.b64encode(report_content)
+
+                    # Crear adjunto temporal para previsualización
+                    attachment = self.env["ir.attachment"].create(
+                        {
+                            "name": report_name,
+                            "datas": report_content_encoded,
+                            "res_model": "mail.compose.message",
+                            "res_id": composer.id,
+                            "type": "binary",
+                        }
+                    )
+                    attachments.append(attachment.id)
+
+                if attachments:
+                    composer.attachment_ids = [(6, 0, composer.attachment_ids.ids + attachments)]
 
     def _prepare_mail_values(self, res_ids):
         """Extended to add withholding attachments when sending payments by email.
