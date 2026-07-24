@@ -10,6 +10,11 @@ class AccountMove(models.Model):
         compute="_compute_perceptions_fiscal_position",
     )
 
+    @api.depends(
+        "fiscal_position_id",
+        "fiscal_position_id.l10n_ar_tax_ids",
+        "fiscal_position_id.l10n_ar_tax_ids.tax_type",
+    )
     def _compute_perceptions_fiscal_position(self):
         """
         Compute if the fiscal position has perceptions.
@@ -18,6 +23,14 @@ class AccountMove(models.Model):
             move.perceptions_fiscal_positon = bool(
                 move.fiscal_position_id.l10n_ar_tax_ids.filtered(lambda x: x.tax_type == "perception")
             )
+
+    @api.depends("partner_id", "partner_shipping_id", "company_id")
+    def _compute_fiscal_position_id(self):
+        """Skip the fiscal position on journal entries (move_type='entry', e.g. payments): it is not
+        used there and, when it carries perceptions, it only adds a misleading warning banner."""
+        entries = self.filtered(lambda move: move.move_type == "entry")
+        entries.fiscal_position_id = False
+        super(AccountMove, self - entries)._compute_fiscal_position_id()
 
     def _get_tax_factor(self):
         self.ensure_one()
@@ -48,7 +61,10 @@ class AccountMove(models.Model):
         NO lo hacemos para el cambio de fiscal_position_id porque el onchange de fiscal_position_id implementado en sale_ux ya recomputa todos los taxes
         """
         for move in self.filtered(
-            lambda x: x.is_sale_document(include_receipts=True) and x.perceptions_fiscal_positon and x.state == "draft"
+            lambda x: x.is_sale_document(include_receipts=True)
+            and x.fiscal_position_id
+            and x.perceptions_fiscal_positon
+            and x.state == "draft"
         ):
             fp_tax_groups = move.fiscal_position_id.l10n_ar_tax_ids.filtered(
                 lambda x: x.tax_type == "perception"
@@ -69,3 +85,33 @@ class AccountMove(models.Model):
         recs = super().copy(default=default)
         recs._l10n_ar_recompute_fiscal_position_taxes()
         return recs
+
+    def button_draft(self):
+        """Ticket 119846.
+
+        En los asientos de pago con retenciones AR las líneas de retención (con
+        ``tax_repartition_line_id``) y sus bases las arma a mano
+        ``account.payment._prepare_move_withholding_lines``, con importes que el motor de
+        impuestos estándar de Odoo NO puede reproducir: los calcula la lógica l10n_ar (escalas y
+        acumulado de ganancias, mínimos) o los carga el operador. El caso testigo es la retención
+        de IVA, un impuesto ``fixed`` con ``amount = 0`` cuyo importe ingresa el operador mirando
+        el IVA de las facturas; ``compute_all`` devuelve 0 para ese impuesto.
+
+        Al pasar a borrador, el sync dinámico del asiento (``_sync_tax_lines`` /
+        ``_sync_unbalanced_lines``) se reactiva —solo corre sobre moves no posteados— y recompone
+        las líneas desde la base: la retención ``fixed/0`` recomputa a 0, cae en el filtro de
+        importe cero de ``account.tax._prepare_tax_lines``, se descarta, y el asiento queda
+        desbalanceado, forzando una "Automatic Balancing Line". No alcanza con preservar importes
+        (``round_from_tax_lines``): el importe manual no es derivable del cómputo del impuesto, así
+        que el motor no puede representarlo.
+
+        Posteado no rompe porque ambos manejadores saltean ``state == 'posted'``. Replicamos eso
+        en la transición a borrador: con ``skip_invoice_sync`` salteamos el recompute dinámico solo
+        para los moves de pago con retenciones. Esas líneas las gobierna
+        ``account.payment._synchronize_to_moves``, que las reconstruye ante cualquier edición
+        posterior del pago.
+        """
+        wth_moves = self.filtered(lambda m: m.move_type == "entry" and m.origin_payment_id.l10n_ar_withholding_line_ids)
+        if wth_moves:
+            super(AccountMove, wth_moves.with_context(skip_invoice_sync=True)).button_draft()
+        return super(AccountMove, self - wth_moves).button_draft()
