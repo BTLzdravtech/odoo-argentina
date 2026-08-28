@@ -9,6 +9,7 @@ class l10nArPaymentWithholding(models.Model):
 
     payment_id = fields.Many2one("account.payment", required=True, ondelete="cascade")
     company_id = fields.Many2one(related="payment_id.company_id")
+    partner_type = fields.Selection(related="payment_id.partner_type")
     currency_id = fields.Many2one(related="payment_id.company_currency_id")
     l10n_ar_tax_type = fields.Selection(related="tax_id.l10n_ar_tax_type")
     name = fields.Char(string="Number")
@@ -32,7 +33,7 @@ class l10nArPaymentWithholding(models.Model):
     def _compute_base_amount(self):
         """practicamente mismo codigo que en l10n_ar.payment.register.withholding pero usamos campos "selected_debt_"""
         self.payment_id._compute_to_pay_amount()
-        for wth in self.filtered(lambda x: x.payment_id.partner_type == "supplier"):
+        for wth in self.filtered(lambda x: x.partner_type == "supplier"):
             # calculamos advance_amount
             # si el adelanto es negativo estamos pagando parcialmente una
             # factura y ocultamos el campo sin impuesto y el metodo _get_withholdable_advanced_amount nos devuelve
@@ -43,9 +44,14 @@ class l10nArPaymentWithholding(models.Model):
                 sorted_to_pay_lines = sorted(
                     wth.payment_id.to_pay_move_line_ids, key=lambda a: a.date_maturity or a.date
                 )
+
                 # last line to be reconciled
                 partial_line = sorted_to_pay_lines[-1]
-                if -partial_line.amount_residual < -wth.payment_id.withholdable_advanced_amount:
+
+                if (
+                    -partial_line.amount_residual < -wth.payment_id.withholdable_advanced_amount
+                    and not wth.payment_id.withholding_warning
+                ):
                     raise UserError(
                         _(
                             "Seleccionó deuda por %s pero aparentente desea pagar %s. En la deuda seleccionada hay algunos comprobantes de mas que no van a poder ser pagados (%s). Deberá quitar dichos comprobantes de la deuda seleccionada para poder hacer el correcto cálculo de las retenciones."
@@ -85,9 +91,11 @@ class l10nArPaymentWithholding(models.Model):
             same_period_withholdings = self._get_same_period_withholdings_amount()
             same_period_base = self._get_same_period_base_amount()
             net_amount = self.base_amount + same_period_base
+            # por ahora l10n_ar_non_taxable_amount lo estamos usando solo en ganancias (ligado al acumulado)
+            # si llega a ser necesario para otros taxes, ademas de mostrarlo en UI tenemos que mover este código
+            net_amount = max(0, net_amount - tax.l10n_ar_non_taxable_amount)
         else:
             net_amount = self.base_amount
-        net_amount = max(0, net_amount - tax.l10n_ar_non_taxable_amount)
         taxes_res = tax.compute_all(
             net_amount,
             currency=self.payment_id.currency_id,
@@ -145,6 +153,18 @@ class l10nArPaymentWithholding(models.Model):
             # deduct withholdings from the same period
             tax_amount -= same_period_withholdings
 
+        # Gates para no-ganancias (IIBB y otros reg.): orden normativo definido en spec.
+        if tax.l10n_ar_tax_type not in ["earnings", "earnings_scale"]:
+            # 1) Gate por pago: si el total del pago no supera el mínimo, no se practica.
+            if tax.l10n_ar_payment_minimum_threshold:
+                if self.payment_id.to_pay_amount <= tax.l10n_ar_payment_minimum_threshold:
+                    return 0.0, tax_account_id, tax_repartition_line_id, False
+            # 2) Gate por base: si la base calculada no supera el mínimo, no se practica.
+            if tax.l10n_ar_base_minimum_threshold:
+                if self.base_amount <= tax.l10n_ar_base_minimum_threshold:
+                    return 0.0, tax_account_id, tax_repartition_line_id, False
+
+        # 3) Mínimo de importe: si el importe calculado es menor al umbral, se anula.
         l10n_ar_minimum_threshold = tax.l10n_ar_minimum_threshold
         if l10n_ar_minimum_threshold > tax_amount:
             tax_amount = 0.0
@@ -152,7 +172,7 @@ class l10nArPaymentWithholding(models.Model):
 
     @api.depends("base_amount", "tax_id")
     def _compute_amount(self):
-        for line in self.filtered(lambda r: r.payment_id.partner_type == "supplier"):
+        for line in self.filtered(lambda r: r.partner_type == "supplier"):
             # TODO: usar _get_withholding_tax no deberia ser necesario
             # si al pasar a draft modificamos la linea
             tax_id = line._get_withholding_tax()
