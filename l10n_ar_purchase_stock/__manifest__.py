@@ -1,6 +1,6 @@
 {
     "name": "Argentinian Purchase Stock",
-    "version": "19.0.1.1.1",
+    "version": "19.0.1.1.2",
     "category": "Localization/Argentina",
     "sequence": 14,
     "author": "ADHOC SA",
@@ -17,6 +17,6 @@
     ],
     "demo": [],
     "installable": True,
-    "auto_install": True,
+    "auto_install": False,
     "application": False,
 }
