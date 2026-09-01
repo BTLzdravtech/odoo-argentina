@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="report_account_transfer_document" primary="True" inherit_id="account_internal_transfer.report_account_transfer_document" >
-        <h3 position="replace"/>
+    <template id="report_account_transfer_document" primary="True" inherit_id="account_internal_transfer.report_account_transfer_document">
+        <h3 position="attributes">
+            <attribute name="t-if">False</attribute>
+        </h3>
         <t t-set="o" position="after">
             <t t-set="custom_header" t-value="'l10n_ar.custom_header'"/>
             <t t-set="report_date" t-value="o.date"/>
