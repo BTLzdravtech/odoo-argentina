@@ -63,14 +63,11 @@ class AccountMove(models.Model):
             )
 
     def button_cancel(self):
-        """
-        Evitamos que se pueda cancelar una factura que ya fue previamente confirmada y enviada a ARCA.
-        Este caso se da cuando dos usuarios están a la vez editando la misma factura, uno confirma
-        y el otro, sin refrescar, cancela.
-        """
+        """Prevent cancelling invoices already authorized by ARCA."""
         if posted_in_afip := self.filtered(
             lambda x: (
-                x.state == "posted"
+                x.company_id.account_fiscal_country_id.code == "AR"
+                and x.state == "posted"
                 and x.invoice_filter_type_domain == "sale"
                 and x.l10n_ar_afip_auth_mode == "CAE"
                 and x.l10n_ar_afip_auth_code

@@ -1,6 +1,6 @@
 {
     "name": "Automatic Argentinian Withholdings backward compatibility",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "author": "ADHOC SA",
     "website": "www.adhoc.com.ar",
     "license": "AGPL-3",
