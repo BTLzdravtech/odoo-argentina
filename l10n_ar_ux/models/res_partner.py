@@ -86,7 +86,7 @@ class ResPartner(models.Model):
                 _logger.error(exception_error)
                 error["vat"] = "error"
                 error["l10n_latam_identification_type_id"] = "error"
-                error_message.append(_(exception_error))
+                error_message.append(str(exception_error))
         return error, error_message
 
     def remove_readonly_required_fields(self, required_fields, values):
