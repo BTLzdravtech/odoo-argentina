@@ -1,6 +1,6 @@
 {
     "name": "Argentinian Accounting UX",
-    "version": "19.0.1.10.0",
+    "version": "19.0.1.10.4",
     "category": "Localization/Argentina",
     "sequence": 14,
     "author": "ADHOC SA",
@@ -35,6 +35,6 @@
         "demo/l10n_ar_ux_demo.xml",
     ],
     "installable": True,
-    "auto_install": True,
+    "auto_install": False,
     "application": False,
 }

@@ -102,8 +102,8 @@ class AccountPayment(models.Model):
     @api.depends("withholdings_amount")
     def _compute_payment_total(self):
         super()._compute_payment_total()
-        for rec in self:
-            rec.payment_total += rec.withholdings_amount
+        for payment in self.filtered(lambda payment: payment.country_code == "AR"):
+            payment.payment_total += payment.withholdings_amount
 
     # por ahora no nos funciona computarlas, se duplica el importe. Igual conceptualemnte el onchange acá por ahí
     # está bien porque en realidad es una "sugerencia" actualizar el amount al usuario
@@ -259,6 +259,8 @@ class AccountPayment(models.Model):
 
     def _prepare_move_lines_per_type(self, write_off_line_vals=None, force_balance=None):
         res = super()._prepare_move_lines_per_type(write_off_line_vals=write_off_line_vals, force_balance=force_balance)
+        if self.country_code != "AR":
+            return res
 
         # we adjust liquidity and counterpart lines because in ARG payment amount is already net of withholdings
         # whereas odoo expects it to be gross and subtracts withholdings from it.
@@ -362,7 +364,7 @@ class AccountPayment(models.Model):
         return res
 
     def action_post(self):
-        for rec in self:
+        for rec in self.filtered(lambda payment: payment.country_code == "AR"):
             commands = []
             for line in rec.l10n_ar_withholding_line_ids:
                 if not line.name or line.name == "/":
@@ -393,7 +395,7 @@ class AccountPayment(models.Model):
         # may be edited (amounts, withholdings, reconciliation) and reposted
         # under the same name, which would otherwise serve the stale cached PDF.
         # Drop the cached receipt so it is regenerated on the next render.
-        self._unlink_cached_payment_receipt()
+        self.filtered(lambda payment: payment.country_code == "AR")._unlink_cached_payment_receipt()
         return super().action_draft()
 
     def _unlink_cached_payment_receipt(self):
@@ -477,7 +479,11 @@ class AccountPayment(models.Model):
         # no entiendo porque pero acá viene un active_test=False que se termina propagando a computed fields que
         # también dependan de partner_id, por ahora forzamos active_test=True para que aguas arriba todo se compute bien
         # metodo completamente analogo a payment.register._compute_l10n_ar_withholding_ids
-        for rec in self.with_context(active_test=True).filtered(lambda x: x.partner_type == "supplier"):
+        ar_supplier_payments = self.with_context(active_test=True).filtered(
+            lambda payment: payment.country_code == "AR" and payment.partner_type == "supplier"
+        )
+        (self - ar_supplier_payments).l10n_ar_withholding_line_ids = [Command.clear()]
+        for rec in ar_supplier_payments:
             date = rec.date or fields.Date.context_today(rec)
             withholdings = [Command.clear()]
             if rec.l10n_ar_fiscal_position_id.l10n_ar_tax_ids:

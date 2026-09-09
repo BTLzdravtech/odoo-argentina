@@ -77,16 +77,17 @@ class AccountPaymentRegister(models.TransientModel):
         # y solo agregamos taxes segun la FP que corresponda
         # super()._compute_l10n_ar_withholding_ids()
         # taxes = self.l10n_ar_withholding_ids.mapped('tax_id')
-        for rec in self:
-            date = rec.payment_date or fields.Date.context_today(rec)
-
+        ar_wizards = self.filtered(lambda wizard: wizard.country_code == "AR")
+        (self - ar_wizards).l10n_ar_withholding_ids = [Command.clear()]
+        for wizard in ar_wizards:
+            date = wizard.payment_date or fields.Date.context_today(wizard)
             withholdings = [Command.clear()]
-            if rec.l10n_ar_fiscal_position_id.l10n_ar_tax_ids:
-                taxes = rec.l10n_ar_fiscal_position_id._l10n_ar_add_taxes(
-                    rec.partner_id, rec.company_id, date, "withholding"
+            if wizard.l10n_ar_fiscal_position_id.l10n_ar_tax_ids:
+                taxes = wizard.l10n_ar_fiscal_position_id._l10n_ar_add_taxes(
+                    wizard.partner_id, wizard.company_id, date, "withholding"
                 )
-                withholdings += [Command.create({"tax_id": x.id}) for x in taxes]
-            rec.l10n_ar_withholding_ids = withholdings
+                withholdings += [Command.create({"tax_id": tax.id}) for tax in taxes]
+            wizard.l10n_ar_withholding_ids = withholdings
 
     @api.depends("is_payment_pro")
     def _compute_available_journal_ids(self):

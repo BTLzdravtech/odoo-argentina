@@ -1,22 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <template id="report_invoice" inherit_id="account.report_invoice">
-        <t t-foreach="docs" position="replace">
-            <t t-foreach="l10n_ar_copies_list" t-as="copy_type">
-                <t>$0</t>
+    <template id="report_invoice" inherit_id="l10n_ar.report_invoice">
+        <xpath expr="//t[@t-call='l10n_ar.report_invoice_document']" position="before">
+            <t t-elif="o._get_name_invoice_report() == 'l10n_ar.report_invoice_document'">
+                <t t-foreach="l10n_ar_copies_list" t-as="copy_type">
+                    <t t-call="l10n_ar.report_invoice_document" t-lang="lang"/>
+                </t>
             </t>
-        </t>
+        </xpath>
+        <xpath expr="//t[@t-call='l10n_ar.report_invoice_document']" position="attributes">
+            <attribute name="t-elif">False</attribute>
+        </xpath>
     </template>
 
     <template id="custom_header" inherit_id="l10n_ar.custom_header">
         <h4 position="after">
-            <strong><span tif="copy_type" t-out="copy_type"/></strong>
+            <strong><span t-if="copy_type" t-out="copy_type"/></strong>
         </h4>
 
-        <!-- usar datos de header_adress en vez de company -->
-        <img t-if="o.company_id.logo" position="replace">
-            <img t-if="header_address.image_1920" t-att-src="image_data_uri(header_address.image_1920)" style="max-height: 45px;" alt="Logo"/>
+        <!-- Use the configured header address. -->
+        <img t-if="o.company_id.logo" position="attributes">
+            <attribute name="t-if">header_address.image_1920</attribute>
+            <attribute name="t-att-src">image_data_uri(header_address.image_1920)</attribute>
+            <attribute name="style">max-height: 45px;</attribute>
         </img>
         <span t-field="o.company_id.partner_id.name" position="attributes">
             <attribute name="t-field">header_address.name</attribute>
@@ -61,7 +68,7 @@
         </div>
         <div id="qrcode" position="after">
             <div t-if="o.company_id.country_id.code == 'AR' and o.journal_id.qr_code and o.payment_state != 'paid'">
-                <div clas="row m-0 justify-content-center align-item-center">
+                <div class="row m-0 justify-content-center align-items-center">
                     <div class="col-auto p-5 text-center">
                         <h5><span t-field="o.journal_id.qr_code_label"/></h5>
                         <br/>
@@ -71,78 +78,5 @@
             </div>
         </div>
     </template>
-    <!-- Corregir el cálculo de los totales en moneda de la compañía usando el tipo de cambio de la factura -->
-    <template id="document_tax_totals_company_currency_template" inherit_id="account.document_tax_totals_company_currency_template">
-        <xpath expr="//table[hasclass('o_total_table')]" position="replace">
-            <table class="o_total_table table table-borderless mb-0">
-                <p class="tax_computation_company_currency">
-                    Taxes <span t-field="o.company_currency_id"/>
-                </p>
-                <t t-foreach="tax_totals['subtotals']" t-as="subtotal">
-                    <tr class="o_subtotal">
-                        <td>
-                            <span t-out="subtotal['name']">Untaxed amount</span>
-                        </td>
-                        <td class="text-end">
-                            <!-- Calcular el monto base en moneda de compañía: base_amount_currency / invoice_currency_rate -->
-                            <t t-set="company_base_amount" t-value="o.company_currency_id.round(subtotal['base_amount_currency'] / o.invoice_currency_rate)"/>
-                            <span t-out="company_base_amount"
-                                  t-options='{"widget": "monetary", "display_currency": currency}'
-                            >27.00</span>
-                        </td>
-                    </tr>
-                    <t t-foreach="subtotal['tax_groups']" t-as="tax_group">
-                        <tr class="o_taxes">
-                            <t t-if="same_tax_base or tax_group['display_base_amount'] is None">
-                                <td>
-                                    <span class="text-nowrap" t-out="tax_group['group_name']"/>
-                                </td>
-                                <td class="text-end o_price_total">
-                                    <!-- Calcular el monto del impuesto en moneda de compañía: tax_amount_currency / invoice_currency_rate -->
-                                    <t t-set="company_tax_amount" t-value="o.company_currency_id.round(tax_group['tax_amount_currency'] / o.invoice_currency_rate)"/>
-                                    <span class="text-nowrap"
-                                          t-out="company_tax_amount"
-                                          t-options='{"widget": "monetary", "display_currency": currency}'
-                                    >31.05</span>
-                                </td>
-                            </t>
-                            <t t-else="">
-                                <td>
-                                    <span t-out="tax_group['group_name']">Tax 15%</span>
-                                    <span> on </span>
-                                    <!-- Calcular la base imponible del impuesto en moneda de compañía -->
-                                    <t t-set="company_display_base_amount" t-value="o.company_currency_id.round(tax_group['display_base_amount_currency'] / o.invoice_currency_rate)"/>
-                                    <span class="text-nowrap"
-                                          t-out="company_display_base_amount"
-                                          t-options='{"widget": "monetary", "display_currency": currency}'
-                                    >27.00</span>
-                                </td>
-                                <td class="text-end o_price_total">
-                                    <!-- Calcular el monto del impuesto en moneda de compañía -->
-                                    <t t-set="company_tax_amount" t-value="o.company_currency_id.round(tax_group['tax_amount_currency'] / o.invoice_currency_rate)"/>
-                                    <span class="text-nowrap"
-                                          t-out="company_tax_amount"
-                                          t-options='{"widget": "monetary", "display_currency": currency}'
-                                    >4.05</span>
-                                </td>
-                            </t>
-                        </tr>
-                    </t>
-                </t>
-                <!--Total amount with all taxes-->
-                <tr class="o_total">
-                    <td><strong>Total</strong></td>
-                    <td class="text-end">
-                        <!-- Calcular el total en moneda de compañía: total_amount_currency / invoice_currency_rate -->
-                        <t t-set="company_total_amount" t-value="o.company_currency_id.round(tax_totals['total_amount_currency'] / o.invoice_currency_rate)"/>
-                        <strong t-out="company_total_amount"
-                                t-options='{"widget": "monetary", "display_currency": currency}'
-                        >31.05</strong>
-                    </td>
-                </tr>
-            </table>
-        </xpath>
-    </template>
-
 
 </odoo>
