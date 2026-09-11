@@ -67,7 +67,10 @@ class AccountMoveLine(models.Model):
 
         if rep_id_to_vals:
             rep_lines = self.env["account.tax.repartition.line"].browse(rep_id_to_vals.keys())
-            for rep_line in rep_lines.filtered(lambda r: r.tax_id.l10n_ar_withholding_payment_type):
+            for rep_line in rep_lines.filtered(
+                lambda rep_line: rep_line.tax_id.country_code == "AR"
+                and rep_line.tax_id.l10n_ar_withholding_payment_type
+            ):
                 for vals in rep_id_to_vals[rep_line.id]:
                     vals["display_type"] = "product"
 

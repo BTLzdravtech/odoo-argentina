@@ -29,6 +29,7 @@ class IrActionsReport(models.Model):
                 l10n_ar_copies += ["TRIPLICADO"]
         res.update(
             {
+                "copy_type": False,
                 "l10n_ar_copies_list": l10n_ar_copies,
             }
         )

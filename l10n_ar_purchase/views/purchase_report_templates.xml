@@ -14,13 +14,13 @@
     </template>
 
     <template id="custom_header_purchasequotation" inherit_id="l10n_ar.custom_header" primary="True">
-        <xpath expr="//div[hasclass('col-6', 'text-end')]/span[1]" position="replace">
+        <xpath expr="//div[@id='l10n_ar_header_right']/span[@t-out='report_date']/preceding-sibling::span" position="replace">
             <span t-att-style="'color: %s;' % o.company_id.secondary_color">Date due: </span>
         </xpath>
     </template>
 
     <template id="custom_header_purchaseorder" inherit_id="l10n_ar.custom_header" primary="True">
-        <xpath expr="//div[hasclass('col-6', 'text-end')]/span[1]" position="replace">
+        <xpath expr="//div[@id='l10n_ar_header_right']/span[@t-out='report_date']/preceding-sibling::span" position="replace">
             <t t-if="o.state == 'purchase'">
                 <span t-att-style="'color: %s;' % o.company_id.secondary_color">Approve date: </span>
             </t>

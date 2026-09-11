@@ -8,7 +8,7 @@ class AccountMove(models.Model):
     def _compute_tax_totals(self):
         super()._compute_tax_totals()
 
-        for move in self.filtered(lambda x: x.state == "posted"):
+        for move in self.filtered(lambda move: move.state == "posted" and move.country_code == "AR"):
             base_lines, _tax_lines = move._get_rounded_base_and_tax_lines()
 
             # Detectar si hay impuestos inactivos en las líneas de impuestos

@@ -6,6 +6,9 @@ class ResCurrency(models.Model):
 
     @api.model
     def _search_by_name(self, currency_name):
-        """This method was original defined in ingadhoc/enterprise-extensions/account_balance_import.
-        We overwrited completely in order to add the logic of ARCA Code"""
-        return self.search(["|", ("name", "=", currency_name), ("l10n_ar_afip_code", "=", currency_name)])
+        """Extend currency lookup with the ARCA code for Argentine companies."""
+        parent_search = getattr(super(), "_search_by_name", None)
+        currencies = parent_search(currency_name) if parent_search else self.search([("name", "=", currency_name)])
+        if self.env.company.account_fiscal_country_id.code == "AR":
+            currencies |= self.search([("l10n_ar_afip_code", "=", currency_name)])
+        return currencies

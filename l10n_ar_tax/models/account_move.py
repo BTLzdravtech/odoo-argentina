@@ -28,9 +28,9 @@ class AccountMove(models.Model):
     def _compute_fiscal_position_id(self):
         """Skip the fiscal position on journal entries (move_type='entry', e.g. payments): it is not
         used there and, when it carries perceptions, it only adds a misleading warning banner."""
-        entries = self.filtered(lambda move: move.move_type == "entry")
-        entries.fiscal_position_id = False
-        super(AccountMove, self - entries)._compute_fiscal_position_id()
+        ar_entries = self.filtered(lambda move: move.move_type == "entry" and move.country_code == "AR")
+        ar_entries.fiscal_position_id = False
+        super(AccountMove, self - ar_entries)._compute_fiscal_position_id()
 
     def _get_tax_factor(self):
         self.ensure_one()
@@ -49,7 +49,7 @@ class AccountMove(models.Model):
         # suelen estar presentes en los 'vals' (dentro de 'invoice_line_ids').
         # Si el usuario editó las líneas, no queremos re-ejecutar nuestra lógica de refresco automático.
         if "invoice_date" in vals and "invoice_line_ids" not in vals:
-            self._l10n_ar_recompute_fiscal_position_taxes()
+            self.filtered(lambda move: move.country_code == "AR")._l10n_ar_recompute_fiscal_position_taxes()
         return res
 
     @api.onchange("invoice_date", "commercial_partner_id")
@@ -61,10 +61,11 @@ class AccountMove(models.Model):
         NO lo hacemos para el cambio de fiscal_position_id porque el onchange de fiscal_position_id implementado en sale_ux ya recomputa todos los taxes
         """
         for move in self.filtered(
-            lambda x: x.is_sale_document(include_receipts=True)
-            and x.fiscal_position_id
-            and x.perceptions_fiscal_positon
-            and x.state == "draft"
+            lambda move: move.country_code == "AR"
+            and move.is_sale_document(include_receipts=True)
+            and move.fiscal_position_id
+            and move.perceptions_fiscal_positon
+            and move.state == "draft"
         ):
             fp_tax_groups = move.fiscal_position_id.l10n_ar_tax_ids.filtered(
                 lambda x: x.tax_type == "perception"
@@ -83,7 +84,7 @@ class AccountMove(models.Model):
         o por alguna razón las percepciones hayan cambiado
         """
         recs = super().copy(default=default)
-        recs._l10n_ar_recompute_fiscal_position_taxes()
+        recs.filtered(lambda move: move.country_code == "AR")._l10n_ar_recompute_fiscal_position_taxes()
         return recs
 
     def button_draft(self):
@@ -111,7 +112,11 @@ class AccountMove(models.Model):
         ``account.payment._synchronize_to_moves``, que las reconstruye ante cualquier edición
         posterior del pago.
         """
-        wth_moves = self.filtered(lambda m: m.move_type == "entry" and m.origin_payment_id.l10n_ar_withholding_line_ids)
+        wth_moves = self.filtered(
+            lambda move: move.country_code == "AR"
+            and move.move_type == "entry"
+            and move.origin_payment_id.l10n_ar_withholding_line_ids
+        )
         if wth_moves:
             super(AccountMove, wth_moves.with_context(skip_invoice_sync=True)).button_draft()
         return super(AccountMove, self - wth_moves).button_draft()
