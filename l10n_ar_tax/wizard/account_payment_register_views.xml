@@ -20,12 +20,12 @@
                     options="{'no_create': True}"
                     invisible="(is_payment_pro and fiscal_position_mode != 'manual') or (not is_payment_pro and (partner_type != 'supplier' or country_code != 'AR' or not can_edit_wizard or (can_group_payments and not group_payment)))"/>
             </group>
-            <button name="action_create_payments" string="Create Payments" position="attributes">
+            <xpath expr="(//button[@name='action_create_payments'])[1]" position="attributes">
                 <attribute name="invisible">is_payment_pro or total_payments_amount == 1</attribute>
-            </button>
-            <button name="action_create_payments" string="Create Payment" position="attributes">
+            </xpath>
+            <xpath expr="(//button[@name='action_create_payments'])[2]" position="attributes">
                 <attribute name="invisible">is_payment_pro or total_payments_amount != 1</attribute>
-            </button>
+            </xpath>
             <footer position="inside">
                 <button name="action_create_and_confirm"
                         string="Create and Confirm"
