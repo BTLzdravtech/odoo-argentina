@@ -4,7 +4,6 @@ import logging
 import os
 import re
 import subprocess
-import tempfile
 import zipfile
 
 from odoo import _, api, fields, models
@@ -58,35 +57,25 @@ class ResCompanyJurisdictionPadron(models.Model):
                 raise ValidationError(_("Only compressed ZIP files are allowed for Santa Fe."))
 
     @api.depends("company_id", "state_id")
-    def name_get(self):
-        res = []
+    def _compute_display_name(self):
         for padron in self:
-            name = "%s: %s" % (padron.company_id.name, padron.state_id.name)
-            res += [(padron.id, name)]
-        return res
+            padron.display_name = "%s: %s" % (padron.company_id.name, padron.state_id.name)
 
     def descompress_file(self, file_padron, dest_dir="/tmp"):
         _logger.log(25, "Descompress zip file")
-        try:
-            file = base64.b64decode(file_padron)
-        except:
-            file = base64.decodestring(file_padron)
-        fobj = tempfile.NamedTemporaryFile(delete=False)
-        fname = fobj.name
-        fobj.write(file)
-        fobj.close()
-        f = open(fname, "r+b")
-        f.write(base64.b64decode(file_padron))
-        with zipfile.ZipFile(f, "r") as zip_file:
+        file_content = base64.b64decode(file_padron)
+        with zipfile.ZipFile(io.BytesIO(file_content), "r") as zip_file:
             zip_file.extractall(path=dest_dir)
-            zip_file.close()
 
     def find_aliquot(self, path, cuit):
         """We try to find aliqut and number for a partner given"""
         # grep -F filtra candidatos en C; el split+comparación exacta abajo
         # descarta falsos positivos (CUIT como substring de otro campo).
+        if not cuit:
+            return False, False
+        # "--" evita que un CUIT que empiece con "-" se interprete como opción de grep
         result = subprocess.run(
-            ["grep", "-F", cuit, path],
+            ["grep", "-F", "--", cuit, path],
             capture_output=True,
             text=True,
             timeout=GREP_TIMEOUT,
@@ -184,15 +173,25 @@ class ResCompanyJurisdictionPadron(models.Model):
             return self._read_parp_lines(fp.readlines(), cuit)
 
     def find_file(self, rootdir, type_code):
-        res = False
-        date = str(self.l10n_ar_padron_from_date.month) + str(self.l10n_ar_padron_from_date.year)
-        pattern = r"%s.{1}|.TXT\Z" % type_code + date
+        """Busca el archivo del padrón para el tipo (Per/Ret).
+
+        Prioriza el que además tiene el período (MMAAAA) en el nombre, p.ej.
+        PadronRGSPer102026.txt. Si ninguno lo tiene, usa el primero que
+        coincida con el tipo (comportamiento anterior; el directorio ya es
+        por padrón y período).
+        """
+        date_from = self.l10n_ar_padron_from_date
+        period = "%02d%s" % (date_from.month, date_from.year)
+        type_pattern = re.compile(r"%s." % re.escape(type_code))
+        period_pattern = re.compile(r"%s.*%s.*\.txt\Z" % (re.escape(type_code), period), re.IGNORECASE)
+        fallback = False
         for subdir, dirs, files in os.walk(rootdir):
             for f in files:
-                if re.search(pattern, f):
-                    res = f
-                    break
-        return res
+                if period_pattern.search(f):
+                    return f
+                if not fallback and type_pattern.search(f):
+                    fallback = f
+        return fallback
 
     def _get_aliquot(self, partner):
         nro = False

@@ -210,6 +210,7 @@ class AccountFiscalPositionL10nArTax(models.Model):
                         .with_context(active_test=False)
                         .search(
                             [
+                                *self.env["account.tax"]._check_company_domain(self.company_id),
                                 ("tax_group_id", "=", self.tax_group_id.id),
                                 ("l10n_ar_withholding_payment_type", "=", "supplier"),
                             ],
