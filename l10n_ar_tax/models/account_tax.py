@@ -191,7 +191,7 @@ class AccountTax(models.Model):
     @api.constrains("ratio")
     def _check_line_ids_percent(self):
         """Check that the total percent is not bigger than 100.0"""
-        for tax in self:
+        for tax in self.filtered(lambda t: t.country_code == "AR"):
             if not tax.ratio or tax.ratio <= 0.0 or tax.ratio > 100.0:
                 raise ValidationError(
                     self.env._(

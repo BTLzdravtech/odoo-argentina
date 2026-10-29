@@ -117,7 +117,9 @@ class AccountPayment(models.Model):
         # solo queremos re-computar en pagos de proveedor
         for rec in self.filtered(
             lambda x: (
-                x.partner_type == "supplier"
+                x.country_code == "AR"
+                and x.use_payment_pro
+                and x.partner_type == "supplier"
                 and x.payment_method_code
                 not in [
                     "in_third_party_checks",
@@ -148,7 +150,7 @@ class AccountPayment(models.Model):
 
     @api.onchange("partner_id")
     def _onchange_partner_id(self):
-        for rec in self:
+        for rec in self.filtered(lambda p: p.country_code == "AR" and p.use_payment_pro):
             if rec.partner_id != rec._origin.partner_id:
                 rec._onchange_withholdings()
 

@@ -1,5 +1,4 @@
 import logging
-import warnings
 import xml.etree.ElementTree as ET
 from hashlib import md5
 
@@ -8,7 +7,6 @@ from odoo import _, api, models
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 class ResCompany(models.Model):

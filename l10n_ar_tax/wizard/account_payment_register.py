@@ -192,7 +192,14 @@ class AccountPaymentRegister(models.TransientModel):
             return super()._reconcile_payments(to_process, edit_mode=edit_mode)
 
     def _create_payments(self):
-        payments = super(AccountPaymentRegister, self.with_context(skip_to_pay_compute=True))._create_payments()
+        # Only payment pro flows set to_pay_move_line_ids themselves (see _reconcile_payments),
+        # so only they need to skip the automatic computation.
+        wizard = (
+            self.with_context(skip_to_pay_compute=True)
+            if self.is_payment_pro or self.company_id.use_payment_pro
+            else self
+        )
+        payments = super(AccountPaymentRegister, wizard)._create_payments()
         if self.fiscal_position_mode == "manual" and self.l10n_ar_fiscal_position_id:
             payments.l10n_ar_fiscal_position_id = self.l10n_ar_fiscal_position_id
         return payments

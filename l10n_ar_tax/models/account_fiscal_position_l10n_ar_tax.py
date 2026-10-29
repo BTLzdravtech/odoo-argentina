@@ -13,6 +13,7 @@ _logger = logging.getLogger(__name__)
 class AccountFiscalPositionL10nArTax(models.Model):
     _name = "account.fiscal.position.l10n_ar_tax"
     _description = "account.fiscal.position.l10n_ar_tax"
+    _check_company_auto = True
 
     fiscal_position_id = fields.Many2one("account.fiscal.position", required=True, ondelete="cascade")
     company_id = fields.Many2one("res.company", related="fiscal_position_id.company_id", store=True)
@@ -27,7 +28,7 @@ class AccountFiscalPositionL10nArTax(models.Model):
         ],
     )
     tax_template_domain = fields.Char(compute="_compute_tax_template_domain")
-    default_tax_id = fields.Many2one("account.tax", required=True)
+    default_tax_id = fields.Many2one("account.tax", required=True, check_company=True)
     tax_type = fields.Selection(
         [("withholding", "Withholding"), ("perception", "Perception")],
         required=True,
