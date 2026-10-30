@@ -6,6 +6,7 @@ from odoo.exceptions import RedirectWarning, UserError
 class l10nArPaymentWithholding(models.Model):
     _name = "l10n_ar.payment.withholding"
     _description = "Payment withholding lines"
+    _check_company_auto = True
 
     payment_id = fields.Many2one("account.payment", required=True, ondelete="cascade")
     company_id = fields.Many2one(related="payment_id.company_id")
