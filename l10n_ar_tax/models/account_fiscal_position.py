@@ -1,10 +1,16 @@
 from odoo import _, api, fields, models
+from odoo.addons.account_ux.models.account_fiscal_position import SHARED_TO_BRANCHES_HELP
 from odoo.exceptions import RedirectWarning, ValidationError
+from odoo.fields import Domain
 
 
 class AccountFiscalPosition(models.Model):
     _inherit = "account.fiscal.position"
 
+    shared_to_branches = fields.Selection(
+        help=SHARED_TO_BRANCHES_HELP + "\n\nIn vendor payments, it also narrows the withholding positions offered "
+        "to pick by hand.",
+    )
     l10n_ar_tax_ids = fields.One2many("account.fiscal.position.l10n_ar_tax", "fiscal_position_id")
     l10n_ar_tax_type = fields.Selection(
         selection=[
@@ -43,13 +49,24 @@ class AccountFiscalPosition(models.Model):
                     )
                 rec.l10n_ar_tax_ids.write({"tax_type": rec.l10n_ar_tax_type})
 
-    def _l10n_ar_add_taxes(self, partner, company, date, tax_type, payment=None):
+    @api.model
+    def _l10n_ar_withholding_positions_for(self, company):
+        """Withholding fiscal positions a payment of ``company`` can use: its own and the ones its
+        ancestors share with it, with the same scope the autodetection applies."""
+        return self.search(
+            Domain(self._shared_to_branches_domain(company)) & Domain("l10n_ar_tax_ids.tax_type", "=", "withholding")
+        )
+
+    def _l10n_ar_add_taxes(self, partner, company, date, tax_type, payment=None, exclude_jurisdictions=()):
+        """'exclude_jurisdictions': códigos de jurisdicción (ej. '901') de los impuestos que no se buscan."""
         # TODO deberiamos unificar mucho de este codigo con _get_tax_domain, _compute_withholdings y _check_tax_group_overlap
         self.ensure_one()
         taxes = self.env["account.tax"]
         # garantizamos de siempre evaluar segun commercial partner que es donde se guardan y ven los impuestos
         partner = partner.commercial_partner_id
         for fp_tax in self.l10n_ar_tax_ids.filtered(lambda x: x.tax_type == tax_type):
+            if fp_tax.default_tax_id.l10n_ar_state_id.jurisdiction_code in exclude_jurisdictions:
+                continue
             domain = self.env["l10n_ar.partner.tax"]._check_company_domain(company)
             domain += [("tax_id.tax_group_id", "=", fp_tax.default_tax_id.tax_group_id.id)]
             if tax_type == "withholding":

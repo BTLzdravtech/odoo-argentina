@@ -16,6 +16,15 @@ class TestApplyWithholdingByPaymentMethod(TestArCommon):
         cls.company.use_payment_pro = True
 
         # Impuesto de retención + posición fiscal de retención
+        # posting a payment needs an account and a number for the withholding line
+        wth_account = cls.env["account.account"].create(
+            {
+                "name": "Ret Test PM",
+                "code": "RTPM",
+                "account_type": "liability_current",
+                "company_ids": [Command.set(cls.company.ids)],
+            }
+        )
         cls.wth_tax = cls.env["account.tax"].create(
             {
                 "name": "Ret Test PM 3%",
@@ -25,6 +34,17 @@ class TestApplyWithholdingByPaymentMethod(TestArCommon):
                 "company_id": cls.company.id,
                 "l10n_ar_tax_type": "iibb_untaxed",
                 "l10n_ar_code": "RET_TEST_PM",
+                "l10n_ar_withholding_sequence_id": cls.env["ir.sequence"]
+                .create({"name": "Ret Test PM seq", "implementation": "standard", "padding": 4})
+                .id,
+                "invoice_repartition_line_ids": [
+                    Command.create({"factor_percent": 100, "repartition_type": "base"}),
+                    Command.create({"factor_percent": 100, "repartition_type": "tax", "account_id": wth_account.id}),
+                ],
+                "refund_repartition_line_ids": [
+                    Command.create({"factor_percent": 100, "repartition_type": "base"}),
+                    Command.create({"factor_percent": 100, "repartition_type": "tax", "account_id": wth_account.id}),
+                ],
             }
         )
         cls.wth_fp = cls.env["account.fiscal.position"].create(
@@ -206,3 +226,60 @@ class TestApplyWithholdingByPaymentMethod(TestArCommon):
         payments = wizard._create_payments()
         self.assertFalse(payments.l10n_ar_fiscal_position_id)
         self.assertFalse(payments.l10n_ar_withholding_line_ids)
+
+    # ------------------------------------------------------------------
+    # Net amount: the form nets the amount with an onchange, so a saved
+    # draft that loses its withholdings on the server must get it back.
+    # ------------------------------------------------------------------
+
+    def _netted_draft(self, invoice):
+        payment = self.env["account.payment"].create(
+            {
+                "payment_type": "outbound",
+                "partner_type": "supplier",
+                "partner_id": self.res_partner_adhoc.id,
+                "amount": invoice.amount_total,
+                "journal_id": self.bank_journal.id,
+                "payment_method_line_id": self.out_pml.id,
+                "to_pay_move_line_ids": [
+                    Command.set(invoice.line_ids.filtered(lambda line: line.account_type == "liability_payable").ids)
+                ],
+            }
+        )
+        # what the form does when the withholdings show up
+        payment._onchange_withholdings()
+        self.assertTrue(payment.withholdings_amount)
+        self.assertLess(payment.amount, invoice.amount_total)
+        return payment
+
+    def test_flag_off_offers_no_fiscal_position(self):
+        self.out_pml.l10n_ar_apply_withholding = False
+        payment = self._new_payment()
+        self.assertFalse(payment.l10n_ar_allowed_fiscal_position_ids)
+        wizard = self._register_wizard(self._vendor_invoice(), mode="manual")
+        self.assertFalse(wizard.l10n_ar_allowed_fiscal_position_ids)
+
+    def test_flag_off_restores_amount_of_netted_drafts(self):
+        invoice = self._vendor_invoice()
+        payment = self._netted_draft(invoice)
+        self.out_pml.l10n_ar_apply_withholding = False
+        self.assertFalse(payment.l10n_ar_fiscal_position_id)
+        self.assertFalse(payment.withholdings_amount)
+        self.assertEqual(payment.amount, invoice.amount_total)
+
+    def test_method_without_withholdings_restores_amount(self):
+        no_withholding_pml = self.out_pml.copy({"name": "No withholdings", "l10n_ar_apply_withholding": False})
+        invoice = self._vendor_invoice()
+        payment = self._netted_draft(invoice)
+        payment.payment_method_line_id = no_withholding_pml
+        self.assertFalse(payment.l10n_ar_fiscal_position_id)
+        self.assertEqual(payment.amount, invoice.amount_total)
+
+    def test_flag_off_keeps_position_of_posted_payments(self):
+        invoice = self._vendor_invoice()
+        payment = self._netted_draft(invoice)
+        payment.action_post()
+        withholdings = payment.withholdings_amount
+        self.out_pml.l10n_ar_apply_withholding = False
+        self.assertEqual(payment.l10n_ar_fiscal_position_id, self.wth_fp)
+        self.assertEqual(payment.withholdings_amount, withholdings)
